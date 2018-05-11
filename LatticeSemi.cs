@@ -18,6 +18,23 @@ namespace Scraper {
             public bool Stocked;
         }
 
+        static async Task<int> Get_Page_Count(string searchid){
+            // Get the page itself.
+            var page_fetch = await BrowsingContext
+                .New(Configuration.Default.WithDefaultLoader())
+                .OpenAsync(
+                    "http://www.latticestore.com/products/tabid/417/pageindex/" + 1 + 
+                    "/searchid/1/default.aspx?searchvalue=" + searchid
+                );
+
+                // Get the page counter in the form of "Page 1 of 11"
+                string counter = 
+                    page_fetch.QuerySelectorAll(".StoreListContainer-Navigation .StorePageInfo").First().TextContent;
+
+                // Get the maximum pages field.
+                return int.Parse(counter.Split(' ').Last());
+        }
+
         static async Task<List<Product>> Parse_Page(int page, string searchid){
             // Get the page itself.
             var page_fetch = await BrowsingContext
@@ -46,7 +63,11 @@ namespace Scraper {
         }
 
         // Product listing goes here.
-        public static async Task<List<Product>> Search(int Page_Count, bool verbose, string searchid) {
+        public static async Task<List<Product>> Search(string searchid, int Page_Count = int.MinValue) {
+            // Check if a Page_Count was given.
+            if (Page_Count == int.MinValue)
+                Page_Count = await Get_Page_Count(searchid);
+
             // Fetch all the pages
             var Fetches =
                 Enumerable.Range(1, Page_Count)
